@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>아바타 고릴라 — 바이럴 구조 분석 & 대본 생성</title>
+<style>
+  :root{
+    --bg: #14110f;
+    --panel: #1c1815;
+    --panel-2: #221d19;
+    --line: #35302a;
+    --text: #f0e9df;
+    --dim: #a89a89;
+    --kong: #e8b04b;   /* 콩 - amber */
+    --joonie: #6fb3a8; /* 준이 - teal */
+    --rilla: #d97e8f;  /* 릴라 - rose */
+    --accent: #e8b04b;
+    --danger: #d9705a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, #1f1a15 0%, transparent 45%),
+      var(--bg);
+    color:var(--text);
+    font-family: "Pretendard", -apple-system, "Noto Sans KR", "Malgun Gothic", sans-serif;
+    line-height:1.6;
+    font-size:17px;
+    padding: 20px 12px 90px;
+  }
+  .wrap{max-width:760px; margin:0 auto;}
+  header{margin-bottom:24px;}
+  .eyebrow{
+    font-size:13px; letter-spacing:.12em; color:var(--accent);
+    text-transform:uppercase; font-weight:700; margin-bottom:8px;
+  }
+  h1{
+    font-size:30px; margin:0 0 8px; font-weight:800; letter-spacing:-.01em;
+  }
+  .sub{color:var(--dim); font-size:16px; margin:0;}
+
+  .stepper{display:flex; gap:6px; margin:20px 0 22px;}
+  .stepper .dot{
+    flex:1; height:5px; border-radius:3px; background:var(--line);
+    transition: background .3s;
+  }
+  .stepper .dot.on{background:var(--accent);}
+
+  section.panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:18px 14px;
+    margin-bottom:16px;
+  }
+  section.panel.dim{opacity:.45; pointer-events:none;}
+  h2{
+    font-size:19px; margin:0 0 6px; font-weight:800;
+    display:flex; align-items:center; gap:9px;
+  }
+  h2 .n{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:25px; height:25px; border-radius:50%; flex-shrink:0;
+    background:var(--accent); color:#1a1611; font-size:14px; font-weight:800;
+  }
+  p.hint{color:var(--dim); font-size:14.5px; margin:0 0 14px;}
+
+  label{display:block; font-size:14.5px; color:var(--dim); margin:14px 0 6px;}
+  input[type=text], input[type=password], textarea, select{
+    width:100%; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--text); border-radius:9px; padding:13px 12px; font-size:16px;
+    font-family:inherit;
+  }
+  textarea{resize:vertical; min-height:70px;}
+  .row{display:flex; flex-direction:column; gap:12px;}
+  .row > *{flex:1;}
+
+  button{
+    appearance:none; border:none; cursor:pointer; font-family:inherit;
+    font-weight:800; font-size:16px; border-radius:10px; padding:14px 16px;
+    background:var(--accent); color:#1a1611; margin-top:16px; width:100%;
+  }
+  button:disabled{opacity:.4; cursor:not-allowed;}
+  button.ghost{
+    background:transparent; border:1px solid var(--line); color:var(--text);
+  }
+  button.small{padding:9px 14px; font-size:14px; margin-top:0; width:auto;}
+
+  .status{font-size:14px; color:var(--dim); margin-top:12px; min-height:16px;}
+  .status.err{color:var(--danger);}
+
+  .card{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:11px;
+    padding:14px; margin-top:11px; cursor:pointer;
+  }
+  .card:hover{border-color:var(--accent);}
+  .card.picked{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent);}
+  .card .title{font-size:16px; font-weight:700; margin-bottom:6px;}
+  .card .meta{font-size:13.5px; color:var(--dim); display:flex; gap:12px; flex-wrap:wrap;}
+  .card .meta b{color:var(--accent);}
+  .card .link{font-size:13px; margin-top:6px; display:inline-block;}
+  .card .link a{color:var(--accent); text-decoration:none; word-break:break-all;}
+  .card .link a:hover{text-decoration:underline;}
+
+  .typepick{display:flex; gap:8px; margin-top:6px;}
+  .typepick button{
+    flex:1; margin-top:0; background:var(--panel-2); color:var(--text);
+    border:1px solid var(--line); font-size:15px; padding:12px 8px;
+  }
+  .typepick button.on{background:var(--accent); color:#1a1611; border-color:var(--accent);}
+
+  .charpick{display:flex; gap:8px; margin-top:6px;}
+  .charpick button{
+    flex:1; margin-top:0; background:var(--panel-2); color:var(--text);
+    border:1px solid var(--line); font-size:15px; padding:13px 8px;
+  }
+  .charpick button.on[data-c="콩"]{background:var(--kong); color:#1a1611; border-color:var(--kong);}
+  .charpick button.on[data-c="준이"]{background:var(--joonie); color:#0f1a18; border-color:var(--joonie);}
+  .charpick button.on[data-c="릴라"]{background:var(--rilla); color:#1a0f12; border-color:var(--rilla);}
+
+  pre.output{
+    white-space:pre-wrap; word-break:break-word; background:var(--panel-2);
+    border:1px solid var(--line); border-radius:11px; padding:16px;
+    font-size:15.5px; line-height:1.7; font-family: inherit; margin-top:12px;
+  }
+  .copybar{display:flex; justify-content:flex-end; margin-top:10px;}
+  .foot-note{color:var(--dim); font-size:13px; margin-top:34px; text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Avatar Gorilla · Internal Tool</div>
+    <h1>바이럴 구조 → 콩/준이/릴라 대본</h1>
+    <p class="sub">터진 쇼츠의 원본은 건드리지 않고, 훅·감정곡선·반전·엔딩 구조만 뽑아 IP 대본으로 재구성합니다.</p>
+  </header>
+
+  <div class="stepper">
+    <div class="dot on" id="dot1"></div>
+    <div class="dot" id="dot2"></div>
+    <div class="dot" id="dot3"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <section class="panel">
+    <h2><span class="n">·</span>API 키 (세션 동안만 메모리에 보관, 저장되지 않음)</h2>
+    <p class="hint">새로고침하면 다시 입력해야 합니다. 키는 이 브라우저 밖으로 전송되지 않고 Apify / Gemini에 직접 호출됩니다.</p>
+    <div class="row">
+      <div>
+        <label>Apify API Token</label>
+        <input type="password" id="apifyToken" placeholder="apify_api_...">
+      </div>
+      <div>
+        <label>Gemini API Key</label>
+        <input type="password" id="geminiKey" placeholder="AIza...">
+      </div>
+    </div>
+    <label style="display:flex; align-items:center; gap:7px; margin-top:12px; cursor:pointer;">
+      <input type="checkbox" id="rememberKeys" style="width:auto;">
+      <span style="font-size:12.5px; color:var(--dim);">이 브라우저에서 기억하기 (이 기기에만 저장, 다른 사람 브라우저에는 안 보임)</span>
+    </label>
+  </section>
+
+  <!-- STEP 1: DETECT -->
+  <section class="panel" id="step1">
+    <h2><span class="n">1</span>탐지 — 떡상 중인 영상 찾기</h2>
+    <p class="hint">쇼츠와 롱폼을 나눠서 탐지합니다. 키워드로 검색해서 조회수/경과시간 기준 떡상 속도가 높은 순으로 정렬합니다.</p>
+    <label>영상 유형</label>
+    <div class="typepick" id="typePick">
+      <button data-t="shorts" class="on">쇼츠</button>
+      <button data-t="longform">롱폼</button>
+    </div>
+    <label>검색 키워드 (비워두면 여러 장르를 자동으로 훑어서 전체 트렌드를 찾음)</label>
+    <input type="text" id="keyword" placeholder="특정 소재로 좁히고 싶을 때만 입력 (예: 반전 쇼츠)">
+    <button id="btnSearch">떡상 영상 찾기 (전체 트렌드)</button>
+    <div class="status" id="status1"></div>
+    <div id="results"></div>
+  </section>
+
+  <!-- STEP 2: ANALYZE -->
+  <section class="panel dim" id="step2">
+    <h2><span class="n">2</span>구조 분석</h2>
+    <p class="hint" id="step2hint">선택한 영상의 제목/메타데이터를 기반으로 훅 방식, 감정 곡선, 반전 타이밍, 엔딩 루프 패턴을 추정합니다. 원본 영상 소스(그림체·대사·비주얼)는 절대 가져오지 않습니다.</p>
+    <button id="btnAnalyze">구조 분석하기</button>
+    <div class="status" id="status2"></div>
+    <pre class="output" id="analysisOut" style="display:none;"></pre>
+  </section>
+
+  <!-- STEP 3: SCRIPT -->
+  <section class="panel dim" id="step3">
+    <h2><span class="n">3</span>대본 생성</h2>
+    <p class="hint">캐릭터, 길이, 언어를 고르면 분석된 구조를 콩/준이/릴라 세계관으로 재구성한 대본을 만듭니다.</p>
+
+    <label>캐릭터</label>
+    <div class="charpick" id="charPick">
+      <button data-c="콩" class="on">콩</button>
+      <button data-c="준이">준이</button>
+      <button data-c="릴라">릴라</button>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>길이</label>
+        <select id="lenPick">
+          <option value="shorts">쇼츠 (최대 2분)</option>
+          <option value="long">롱폼 (최대 4분)</option>
+        </select>
+      </div>
+      <div>
+        <label>언어</label>
+        <select id="langPick">
+          <option value="english">영어 (기본)</option>
+          <option value="korean">한국어</option>
+          <option value="thai">태국어</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="btnScript">대본 생성하기</button>
+    <div class="status" id="status3"></div>
+    <pre class="output" id="scriptOut" style="display:none;"></pre>
+    <div class="copybar" id="copyBar" style="display:none;">
+      <button class="ghost small" id="btnCopy">대본 복사</button>
+    </div>
+  </section>
+
+  <p class="foot-note">Apify(탐지) + Gemini API(분석·대본) 무료 티어 조합 · GitHub Pages 정적 배포용</p>
+</div>
+
+<script>
+const APIFY_ACTOR = "makework36~youtube-shorts-scraper"; // 검색 기반 쇼츠 스크래퍼
+const GEMINI_MODEL = "gemini-3.6-flash";
+
+// 키워드를 안 넣었을 때 훑을 5개 장르 (형 채널 결에 맞춤) - 쇼츠용
+const TREND_SEED_KEYWORDS = [
+  "political satire shorts", "amazing science facts shorts",
+  "funny comedy shorts", "emotional family story shorts", "plot twist shorts"
+];
+
+// 롱폼용 시드 키워드 (쇼츠 태그 없이, 같은 5개 결)
+const TREND_SEED_KEYWORDS_LONG = [
+  "political satire video", "amazing science explained",
+  "funny comedy sketch", "emotional family story", "plot twist story video"
+];
+
+let selectedType = "shorts"; // "shorts" | "longform"
+
+let selectedVideo = null;
+let analysisText = "";
+let selectedChar = "콩";
+
+const IP_TEMPLATE = `
+[아바타 고릴라 IP 템플릿 요약]
+- 캐릭터: 콩(Kong) / 준이(Joonie) / 릴라(Rilla) — AI 생성 애니메이션 캐릭터
+- 타겟: 한국·태국 오디언스, 다국어(한/태/영/유럽/동남아) 자막 대응
+- 스크립트 원칙: 극단적 감정 훅(0~1초 내 시선 고정), 인과관계의 시각적 명확성(장면 간 원인-결과가 눈에 보여야 함),
+  손실회피(잃을 것에 대한 긴장), 자이가르닉 효과(완결되지 않은 긴장으로 재시청 유도)
+- 엔딩 기법: 마지막 프레임을 첫 프레임과 약 90% 유사하게 구성하되 디테일 1개만 변경 → 자동재생 루프 시 이질감 없이 재시청 유도
+- 톤: 코미디, 풍자, 감정적 모자(母子)/가족 서사 등 다양한 톤을 캐릭터에 맞게 소화
+- 제작 파이프라인: Google Flow(Gemini 기반) — 프롬프트마다 의상/배경을 매번 재지정해야 캐릭터 일관성 유지됨
+`.trim();
+
+function $(id){ return document.getElementById(id); }
+
+// ---- 키 기억하기 (이 브라우저에만 저장, 로컬스토리지) ----
+function loadSavedKeys(){
+  try{
+    const saved = localStorage.getItem("agst_keys");
+    if(saved){
+      const {apify, gemini} = JSON.parse(saved);
+      if(apify) $("apifyToken").value = apify;
+      if(gemini) $("geminiKey").value = gemini;
+      $("rememberKeys").checked = true;
+    }
+  }catch(e){ /* 로컬스토리지 사용 불가 환경이면 그냥 매번 입력 */ }
+}
+function persistKeysIfNeeded(){
+  try{
+    if($("rememberKeys").checked){
+      localStorage.setItem("agst_keys", JSON.stringify({
+        apify: $("apifyToken").value.trim(),
+        gemini: $("geminiKey").value.trim()
+      }));
+    }else{
+      localStorage.removeItem("agst_keys");
+    }
+  }catch(e){ /* 무시 */ }
+}
+$("rememberKeys").addEventListener("change", persistKeysIfNeeded);
+$("apifyToken").addEventListener("input", ()=>{ if($("rememberKeys").checked) persistKeysIfNeeded(); });
+$("geminiKey").addEventListener("input", ()=>{ if($("rememberKeys").checked) persistKeysIfNeeded(); });
+loadSavedKeys();
+
+function setStatus(id, msg, isErr){
+  const el = $(id);
+  el.textContent = msg || "";
+  el.className = "status" + (isErr ? " err" : "");
+}
+
+function unlockStep(n){
+  $("dot"+n).classList.add("on");
+  if(n===2) $("step2").classList.remove("dim");
+  if(n===3) $("step3").classList.remove("dim");
+}
+
+// ---- character picker ----
+$("charPick").addEventListener("click", (e)=>{
+  const b = e.target.closest("button");
+  if(!b) return;
+  [...$("charPick").children].forEach(c=>c.classList.remove("on"));
+  b.classList.add("on");
+  selectedChar = b.dataset.c;
+});
+
+// ---- content type picker (쇼츠 / 롱폼) ----
+$("typePick").addEventListener("click", (e)=>{
+  const b = e.target.closest("button");
+  if(!b) return;
+  [...$("typePick").children].forEach(c=>c.classList.remove("on"));
+  b.classList.add("on");
+  selectedType = b.dataset.t;
+  $("btnSearch").textContent = selectedType === "shorts"
+    ? "떡상 영상 찾기 (전체 트렌드)"
+    : "떡상 롱폼 찾기 (전체 트렌드)";
+  $("keyword").placeholder = selectedType === "shorts"
+    ? "특정 소재로 좁히고 싶을 때만 입력 (예: 반전 쇼츠)"
+    : "특정 소재로 좁히고 싶을 때만 입력 (예: 반전 스토리)";
+  $("step2hint").textContent = selectedType === "shorts"
+    ? "선택한 영상의 제목/메타데이터를 기반으로 훅 방식, 감정 곡선, 반전 타이밍, 엔딩 루프 패턴을 추정합니다. 원본 영상 소스(그림체·대사·비주얼)는 절대 가져오지 않습니다."
+    : "선택한 영상의 줄거리를 추정해서 기승전결로 나누고, 각 단계 안의 컷들을 내용별로 정리합니다. 형이 이걸 보고 직접 컷을 수정·재구성해서 완성 대본을 만들 수 있습니다.";
+  $("results").innerHTML = "";
+  selectedVideo = null;
+});
+
+// ---- STEP 1: Apify search ----
+$("btnSearch").addEventListener("click", async ()=>{
+  const token = $("apifyToken").value.trim();
+  const keyword = $("keyword").value.trim();
+  if(!token){ setStatus("status1","Apify API Token을 먼저 입력하세요.", true); return; }
+
+  const isLong = selectedType === "longform";
+  const seedList = isLong ? TREND_SEED_KEYWORDS_LONG : TREND_SEED_KEYWORDS;
+  const queries = keyword ? [keyword] : seedList;
+  const perQuery = keyword ? 15 : (isLong ? 10 : 6); // 롱폼은 필터링으로 걸러지는 게 많아 넉넉히 가져옴
+
+  setStatus("status1", keyword
+    ? "검색 중... (최대 30초 소요될 수 있음)"
+    : `5개 장르 훑는 중... (20~30초 소요될 수 있음)`);
+  $("results").innerHTML = "";
+  $("btnSearch").disabled = true;
+
+  try{
+    const url = `https://api.apify.com/v2/acts/${APIFY_ACTOR}/run-sync-get-dataset-items?token=${encodeURIComponent(token)}`;
+    const body = {
+      searchQueries: queries,
+      maxResultsPerQuery: perQuery,
+      onlyShortsFilter: !isLong,
+      sortBy: "view_count"
+    };
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(body)
+    });
+    if(!res.ok){
+      const t = await res.text();
+      throw new Error(`Apify 오류 (${res.status}): ${t.slice(0,200)}`);
+    }
+    let items = await res.json();
+    if(!items || !items.length){
+      setStatus("status1","결과가 없습니다. 키워드를 바꿔보세요.");
+      return;
+    }
+
+    // 떡상 속도 = 조회수 / 경과시간(시간 단위), 데이터 필드명은 액터 응답에 맞춰 유연하게 매핑
+    const now = Date.now();
+    let scored = items.map(it=>{
+      const views = Number(it.views ?? it.viewCount ?? 0);
+      const published = it.publishedAt || it.publishDate || it.uploadDate;
+      let hours = 24; // fallback
+      if(published){
+        const t = new Date(published).getTime();
+        if(!isNaN(t)) hours = Math.max(1, (now - t) / 3600000);
+      }
+      // 초 단위 재생시간 (필드명이 다양해서 유연하게 매핑, 없으면 null)
+      let durationSec = it.durationSeconds ?? it.lengthSeconds ?? it.duration ?? null;
+      if(typeof durationSec === "string"){
+        // "MM:SS" 또는 "HH:MM:SS" 형태 문자열 대응
+        const parts = durationSec.split(":").map(Number);
+        durationSec = parts.reduce((acc,v)=> acc*60+v, 0);
+      }
+      return {
+        title: it.title || it.caption || "(제목 없음)",
+        url: it.url || it.videoUrl || it.shortUrl || "",
+        views,
+        hours: Math.round(hours),
+        velocity: Math.round(views / hours),
+        durationSec,
+        type: selectedType,
+      };
+    });
+
+    // 스크래퍼가 가끔 비정상적으로 큰 조회수(파싱 오류/장난 데이터)를 반환하는 경우가 있어 상식적 상한으로 걸러냄
+    scored = scored.filter(v => v.views > 0 && v.views < 5_000_000_000);
+
+    if(isLong){
+      // 1차: /shorts/ URL은 확실한 쇼츠이므로 제외
+      // 2차: /watch?v= 로 올라갔어도 제목에 #shorts/#short 해시태그가 있으면 사실상 쇼츠로 간주하고 제외
+      scored = scored.filter(v => !/\/shorts\//i.test(v.url) && !/#shorts?\b/i.test(v.title));
+    }
+
+    scored = scored.sort((a,b)=> b.velocity - a.velocity).slice(0,10);
+
+    if(!scored.length){
+      setStatus("status1","조건에 맞는 롱폼 결과가 없습니다. 키워드를 바꿔보세요.");
+      return;
+    }
+
+    setStatus("status1", `${scored.length}개 결과 · 떡상 속도(조회수/경과시간) 순 정렬${keyword ? "" : " · 전체 장르 훑음"}`);
+    $("results").innerHTML = "";
+    scored.forEach((v)=>{
+      const card = document.createElement("div");
+      card.className = "card";
+      const durLabel = v.durationSec ? `<span>길이 <b>${Math.round(v.durationSec/60)}분</b></span>` : "";
+      card.innerHTML = `
+        <div class="title">${escapeHtml(v.title)}</div>
+        <div class="meta">
+          <span>조회수 <b>${v.views.toLocaleString()}</b></span>
+          <span>업로드 후 <b>${v.hours}시간</b></span>
+          <span>떡상속도 <b>${v.velocity.toLocaleString()}/h</b></span>
+          ${durLabel}
+        </div>
+        ${v.url ? `<div class="link"><a href="${escapeHtml(v.url)}" target="_blank" rel="noopener">${escapeHtml(v.url)}</a></div>` : ""}`;
+      card.querySelector(".title").addEventListener("click", ()=> pickCard(card, v));
+      card.querySelector(".meta").addEventListener("click", ()=> pickCard(card, v));
+      $("results").appendChild(card);
+    });
+
+  }catch(err){
+    setStatus("status1", err.message || String(err), true);
+  }finally{
+    $("btnSearch").disabled = false;
+  }
+});
+
+function pickCard(card, v){
+  [...$("results").children].forEach(c=>c.classList.remove("picked"));
+  card.classList.add("picked");
+  selectedVideo = v;
+  unlockStep(2);
+  setStatus("status2","");
+}
+
+// ---- STEP 2: Gemini structure analysis ----
+$("btnAnalyze").addEventListener("click", async ()=>{
+  const key = $("geminiKey").value.trim();
+  if(!key){ setStatus("status2","Gemini API Key를 먼저 입력하세요.", true); return; }
+  if(!selectedVideo){ setStatus("status2","1단계에서 영상을 먼저 선택하세요.", true); return; }
+
+  setStatus("status2","분석 중...");
+  $("btnAnalyze").disabled = true;
+  $("analysisOut").style.display = "none";
+
+  const isLong = selectedVideo.type === "longform";
+
+  const prompt = isLong ? `
+너는 롱폼 영상 스토리 분석가야. 아래 영상의 "제목과 메타데이터"만 보고, 이 영상의 줄거리를 합리적으로 추정해서
+기승전결 구조로 나누고, 각 단계 안에서 내용이 바뀌는 지점마다 컷으로 쪼개서 정리해.
+절대로 실제 대사나 구체적 비주얼을 창작하지 말고, "이 단계에서 어떤 일이 일어났을지"를 줄거리 수준으로만 적어.
+각 단계(기/승/전/결)는 컷이 1개일 수도, 여러 개일 수도 있어 — 내용이 바뀌는 지점마다 자연스럽게 나눠.
+
+영상 제목: ${selectedVideo.title}
+조회수: ${selectedVideo.views}
+업로드 후 경과: ${selectedVideo.hours}시간
+떡상속도: ${selectedVideo.velocity}/시간
+${selectedVideo.durationSec ? `추정 길이: 약 ${Math.round(selectedVideo.durationSec/60)}분` : ""}
+
+출력 형식 (한국어):
+
+[기 - 도입]
+컷1: (내용 요약 1~2문장)
+컷2: (있다면)
+
+[승 - 전개]
+컷1: (내용 요약)
+컷2: (있다면)
+...
+
+[전 - 전환/반전]
+컷1: (내용 요약)
+...
+
+[결 - 마무리]
+컷1: (내용 요약)
+...
+
+[이 구조가 통한 이유(가설)]
+(1~2문장)
+`.trim() : `
+너는 쇼츠 포맷 분석가야. 아래 영상의 "제목과 메타데이터"만 보고, 이 영상이 왜 떡상했을지 구조적으로 추정해서 정리해.
+절대로 실제 대사나 구체적 비주얼을 창작하지 말고, 아래 항목만 간결하게 채워.
+
+영상 제목: ${selectedVideo.title}
+조회수: ${selectedVideo.views}
+업로드 후 경과: ${selectedVideo.hours}시간
+떡상속도: ${selectedVideo.velocity}/시간
+
+출력 형식 (한국어, 항목당 1~2문장):
+- 훅 유형(0~1초):
+- 감정 곡선:
+- 반전/전환 타이밍:
+- 엔딩 방식(루프 여부 포함):
+- 이 구조가 통한 이유(가설):
+`.trim();
+
+  try{
+    const text = await callGemini(key, prompt);
+    analysisText = text;
+    $("analysisOut").textContent = text;
+    $("analysisOut").style.display = "block";
+    setStatus("status2","분석 완료. 3단계로 진행하세요.");
+    unlockStep(3);
+  }catch(err){
+    setStatus("status2", err.message || String(err), true);
+  }finally{
+    $("btnAnalyze").disabled = false;
+  }
+});
+
+// ---- STEP 3: Gemini script generation ----
+$("btnScript").addEventListener("click", async ()=>{
+  const key = $("geminiKey").value.trim();
+  if(!key){ setStatus("status3","Gemini API Key를 먼저 입력하세요.", true); return; }
+  if(!analysisText){ setStatus("status3","2단계 구조 분석을 먼저 완료하세요.", true); return; }
+
+  const isLong = selectedVideo && selectedVideo.type === "longform";
+  const length = isLong
+    ? "롱폼, 최대 4분 분량"
+    : ($("lenPick").value === "shorts" ? "쇼츠, 최대 2분 분량" : "롱폼, 최대 4분 분량");
+  const langMap = { english: "영어 (원문의 언어유희·워드플레이는 영어 표현 그대로 살릴 것)", korean: "한국어", thai: "태국어" };
+  const lang = langMap[$("langPick").value];
+
+  setStatus("status3","대본 생성 중...");
+  $("btnScript").disabled = true;
+  $("scriptOut").style.display = "none";
+  $("copyBar").style.display = "none";
+
+  const prompt = isLong ? `
+${IP_TEMPLATE}
+
+[참고한 기승전결 컷 분석 — 원본 소스는 사용하지 말고 줄거리 구조만 참고]
+${analysisText}
+
+[요청]
+위 기승전결/컷 구조를 참고해서, 주인공 "${selectedChar}"의 시점으로 완전히 새로운 롱폼 대본을 써줘.
+- 분량: ${length}
+- 언어: ${lang}
+- 원본 영상의 구체적 대사나 비주얼을 그대로 가져오지 말 것. 줄거리 리듬(기승전결 배치)만 차용.
+- 분석에 나온 컷 구조를 그대로 따라가되, 각 컷마다 비주얼과 대사를 새로 창작.
+- 각 컷은 형이 나중에 직접 수정하기 쉽게 명확히 구분해줘.
+
+출력 형식을 정확히 지켜줘 (분석에서 나온 컷 개수만큼 반복):
+
+[기 - 도입]
+컷1
+비주얼:
+대사:
+
+(컷이 더 있으면 컷2, 컷3 ... 계속)
+
+[승 - 전개]
+컷1
+비주얼:
+대사:
+...
+
+[전 - 전환/반전]
+컷1
+비주얼:
+대사:
+...
+
+[결 - 마무리]
+컷1
+비주얼:
+대사:
+(마지막 컷은 첫 컷과 약 90% 유사하되 디테일 1개만 다르게 — 루프 재생 대비)
+
+[Google Flow 프롬프트용 요약]
+- 캐릭터:
+- 의상:
+- 배경:
+- 감정톤:
+`.trim() : `
+${IP_TEMPLATE}
+
+[참고한 구조 분석 — 원본 소스는 사용하지 말고 구조만 참고]
+${analysisText}
+
+[요청]
+위 구조(훅/감정곡선/반전/엔딩 루프)를 참고해서, 주인공 "${selectedChar}"의 시점으로 완전히 새로운 대본을 써줘.
+- 분량: ${length}
+- 언어: ${lang}
+- 원본 영상의 구체적 대사나 비주얼을 그대로 가져오지 말 것. 구조(리듬/타이밍)만 차용.
+- 엔딩은 첫 장면과 약 90% 유사하되 디테일 1개만 다르게 (루프 재생 대비).
+
+출력 형식을 정확히 지켜줘:
+
+[장면1 - 훅]
+비주얼:
+대사:
+
+[장면2 - 전개]
+비주얼:
+대사:
+
+[장면3 - 반전/엔딩]
+비주얼:
+대사:
+
+[Google Flow 프롬프트용 요약]
+- 캐릭터:
+- 의상:
+- 배경:
+- 감정톤:
+`.trim();
+
+  try{
+    const text = await callGemini(key, prompt);
+    $("scriptOut").textContent = text;
+    $("scriptOut").style.display = "block";
+    $("copyBar").style.display = "flex";
+    setStatus("status3","대본 생성 완료.");
+  }catch(err){
+    setStatus("status3", err.message || String(err), true);
+  }finally{
+    $("btnScript").disabled = false;
+  }
+});
+
+$("btnCopy").addEventListener("click", ()=>{
+  navigator.clipboard.writeText($("scriptOut").textContent).then(()=>{
+    setStatus("status3","클립보드에 복사됨.");
+  });
+});
+
+async function callGemini(key, prompt){
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }]
+    })
+  });
+  if(!res.ok){
+    const t = await res.text();
+    throw new Error(`Gemini 오류 (${res.status}): ${t.slice(0,200)}`);
+  }
+  const data = await res.json();
+  const text = data?.candidates?.[0]?.content?.parts?.map(p=>p.text).join("") || "";
+  if(!text) throw new Error("Gemini 응답에서 텍스트를 찾지 못했습니다.");
+  return text;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+</script>
+</body>
+</html>
