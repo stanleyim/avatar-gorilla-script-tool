@@ -361,8 +361,8 @@ $("btnSearch").addEventListener("click", async ()=>{
   const perQuery = keyword ? 15 : (isLong ? 10 : 6); // 롱폼은 필터링으로 걸러지는 게 많아 넉넉히 가져옴
 
   setStatus("status1", keyword
-    ? "검색 중... (최대 30초 소요될 수 있음)"
-    : `5개 장르 훑는 중... (20~30초 소요될 수 있음)`);
+    ? "검색 중... (최대 120초 소요될 수 있음)"
+    : `5개 장르 훑는 중... (100~120초 소요될 수 있음)`);
   $("results").innerHTML = "";
   $("btnSearch").disabled = true;
 
